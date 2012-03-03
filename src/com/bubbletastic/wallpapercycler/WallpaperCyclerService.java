@@ -52,13 +52,6 @@ public class WallpaperCyclerService extends WallpaperService {
 						@Override
 						public void run() {
 							setCurrentWallpaper();
-							handler.post(new Runnable() {
-								
-								@Override
-								public void run() {
-									draw();
-								}
-							});
 						}
 					});
 					getWallpaperThread.setPriority(Thread.MIN_PRIORITY);
@@ -70,13 +63,19 @@ public class WallpaperCyclerService extends WallpaperService {
 		
 		public WallpaperCyclerEngine() {
 			super();
+			setTouchEventsEnabled(true);
+		}
+		
+		@Override
+		public void onCreate(SurfaceHolder surfaceHolder) {
+			super.onCreate(surfaceHolder);
 			//TODO: allow user selected folder to fetch images from.
 			fileList = getFileList(Environment.getExternalStorageDirectory()+"/Wallpapers");
 			if (fileList.length > 0) {
 				setNextFileIndex();
+				setCurrentWallpaper();
+				draw();
 			}
-			
-			setTouchEventsEnabled(true);
 		}
 		
 		@Override
