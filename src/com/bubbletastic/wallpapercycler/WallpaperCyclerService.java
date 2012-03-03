@@ -31,7 +31,7 @@ public class WallpaperCyclerService extends WallpaperService {
 		
 		//Preferences
 		private boolean usePseudoRandomOrder = true;
-		private boolean alwaysChangeWhenVisible = true;
+		private boolean changeWallpaperWithVisibility = true;
 		
 		//For detecting when a touch event has moved the home screen.
 		private boolean motionMoved;
@@ -51,7 +51,7 @@ public class WallpaperCyclerService extends WallpaperService {
 					Thread getWallpaperThread = new Thread(new Runnable() {
 						@Override
 						public void run() {
-							setWallpaper();
+							setCurrentWallpaper();
 							handler.post(new Runnable() {
 								
 								@Override
@@ -70,6 +70,7 @@ public class WallpaperCyclerService extends WallpaperService {
 		
 		public WallpaperCyclerEngine() {
 			super();
+			//TODO: allow user selected folder to fetch images from.
 			fileList = getFileList(Environment.getExternalStorageDirectory()+"/Wallpapers");
 			if (fileList.length > 0) {
 				setNextFileIndex();
@@ -93,7 +94,7 @@ public class WallpaperCyclerService extends WallpaperService {
 			}
 		}
 
-		private void setWallpaper() {
+		private void setCurrentWallpaper() {
 			if (currentFileIndex > fileList.length) {
 				//If we have somehow gotten out of bounds of the array, set a new index to use.
 				setNextFileIndex();
@@ -112,7 +113,7 @@ public class WallpaperCyclerService extends WallpaperService {
 				LogHelper.postErrorLog("A wallpaper image failed to load: "+fileList[currentFileIndex], getClass());
 				//If the decode failed for some reason, try again with the next file.
 				currentFileIndex ++;
-				setWallpaper();
+				setCurrentWallpaper();
 			} else {
 				setNextFileIndex();
 			}
@@ -130,10 +131,11 @@ public class WallpaperCyclerService extends WallpaperService {
 		@Override
 		public void onVisibilityChanged(boolean visible) {
 			super.onVisibilityChanged(visible);
-			if (visible && alwaysChangeWhenVisible) {
+			if (!visible && changeWallpaperWithVisibility) {
+				//Change the wallpaper every time it is *hidden* so that the wallpaper does not flicker from old to new next time it's shown.
 				handler.post(changeWallpapers);
 			} else {
-				handler.removeCallbacks(changeWallpapers);
+				draw();
 			}
 		}
 		
