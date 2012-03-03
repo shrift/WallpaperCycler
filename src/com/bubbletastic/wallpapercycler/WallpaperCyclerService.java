@@ -4,15 +4,15 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.Random;
 
+import android.app.WallpaperManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.service.wallpaper.WallpaperService;
-import android.view.MotionEvent;
 import android.view.SurfaceHolder;
-import android.view.ViewConfiguration;
 
 public class WallpaperCyclerService extends WallpaperService {
 
@@ -29,13 +29,9 @@ public class WallpaperCyclerService extends WallpaperService {
 
 	private class WallpaperCyclerEngine extends Engine {
 		
-		private static final int WALLPAPER_CLICK_THRESHOLD = 10;
 		//Preferences
 		private boolean usePseudoRandomOrder = true;
 		private boolean changeWallpaperWithVisibility = true;
-		
-		//For detecting when a touch event has moved the home screen.
-		private boolean motionMoved;
 		
 		private Bitmap wallpaper;
 		private File[] fileList;
@@ -64,7 +60,6 @@ public class WallpaperCyclerService extends WallpaperService {
 		
 		public WallpaperCyclerEngine() {
 			super();
-			setTouchEventsEnabled(true);
 		}
 		
 		@Override
@@ -79,27 +74,13 @@ public class WallpaperCyclerService extends WallpaperService {
 			}
 		}
 		
-		//These must be outside the method in order to not be reset every event...
-		float x = 0;
-		float y = 0;
 		@Override
-		public void onTouchEvent(MotionEvent event) {
-			super.onTouchEvent(event);
-			
-			if (event.getAction() == MotionEvent.ACTION_DOWN) {
-				x = event.getX();
-				y = event.getY();
-				motionMoved = false;
-			} else if (event.getAction() == MotionEvent.ACTION_MOVE) {
-				motionMoved = true;
-			} else if (event.getAction() == MotionEvent.ACTION_UP) {
-				if ((!motionMoved || (Math.abs(x - event.getX()) > WALLPAPER_CLICK_THRESHOLD || Math.abs(y - event.getY()) > WALLPAPER_CLICK_THRESHOLD))
-						&& (event.getEventTime() - event.getDownTime()) < ViewConfiguration.getLongPressTimeout()) {
-					//If the map has not moved at all between the down > up events, or if it moved less than the threshold (allows for a "smudge" click), and the down time was less than a long press, proceed.
-					changeCurrentWallpaper();
-					draw();
-				}
+		public Bundle onCommand(String action, int x, int y, int z, Bundle extras, boolean resultRequested) {
+			if (action.equals(WallpaperManager.COMMAND_TAP)) {
+				changeCurrentWallpaper();
+				draw();
 			}
+			return super.onCommand(action, x, y, z, extras, resultRequested);
 		}
 
 		private void changeCurrentWallpaper() {
