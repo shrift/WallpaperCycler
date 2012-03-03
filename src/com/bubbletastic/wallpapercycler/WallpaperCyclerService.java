@@ -29,6 +29,7 @@ public class WallpaperCyclerService extends WallpaperService {
 
 	private class WallpaperCyclerEngine extends Engine {
 		
+		private static final int WALLPAPER_CLICK_THRESHOLD = 10;
 		//Preferences
 		private boolean usePseudoRandomOrder = true;
 		private boolean changeWallpaperWithVisibility = true;
@@ -51,7 +52,7 @@ public class WallpaperCyclerService extends WallpaperService {
 					Thread getWallpaperThread = new Thread(new Runnable() {
 						@Override
 						public void run() {
-							setCurrentWallpaper();
+							changeCurrentWallpaper();
 						}
 					});
 					getWallpaperThread.setPriority(Thread.MIN_PRIORITY);
@@ -73,27 +74,35 @@ public class WallpaperCyclerService extends WallpaperService {
 			fileList = getFileList(Environment.getExternalStorageDirectory()+"/Wallpapers");
 			if (fileList.length > 0) {
 				setNextFileIndex();
-				setCurrentWallpaper();
+				changeCurrentWallpaper();
 				draw();
 			}
 		}
 		
+		//These must be outside the method in order to not be reset every event...
+		float x = 0;
+		float y = 0;
 		@Override
 		public void onTouchEvent(MotionEvent event) {
 			super.onTouchEvent(event);
 			
 			if (event.getAction() == MotionEvent.ACTION_DOWN) {
+				x = event.getX();
+				y = event.getY();
 				motionMoved = false;
 			} else if (event.getAction() == MotionEvent.ACTION_MOVE) {
 				motionMoved = true;
 			} else if (event.getAction() == MotionEvent.ACTION_UP) {
-				if (!motionMoved && (event.getEventTime() - event.getDownTime()) < ViewConfiguration.getLongPressTimeout()) {
-					handler.post(changeWallpapers);
+				if ((!motionMoved || (Math.abs(x - event.getX()) > WALLPAPER_CLICK_THRESHOLD || Math.abs(y - event.getY()) > WALLPAPER_CLICK_THRESHOLD))
+						&& (event.getEventTime() - event.getDownTime()) < ViewConfiguration.getLongPressTimeout()) {
+					//If the map has not moved at all between the down > up events, or if it moved less than the threshold (allows for a "smudge" click), and the down time was less than a long press, proceed.
+					changeCurrentWallpaper();
+					draw();
 				}
 			}
 		}
 
-		private void setCurrentWallpaper() {
+		private void changeCurrentWallpaper() {
 			if (currentFileIndex > fileList.length) {
 				//If we have somehow gotten out of bounds of the array, set a new index to use.
 				setNextFileIndex();
@@ -112,7 +121,7 @@ public class WallpaperCyclerService extends WallpaperService {
 				LogHelper.postErrorLog("A wallpaper image failed to load: "+fileList[currentFileIndex], getClass());
 				//If the decode failed for some reason, try again with the next file.
 				currentFileIndex ++;
-				setCurrentWallpaper();
+				changeCurrentWallpaper();
 			} else {
 				setNextFileIndex();
 			}
