@@ -111,7 +111,7 @@ public class WallpaperCyclerService extends WallpaperService {
 			}
 			previosWallpaperImage = currentWallpaperImage;
 			try {
-				getImageFromFileSystem(fileList[currentFileIndex].toString());
+				currentWallpaperImage = getImageFromFileSystem(fileList[currentFileIndex].toString());
 			} catch (OutOfMemoryError oom) {
 				currentWallpaperImage = null;
 				oom.printStackTrace();
@@ -123,7 +123,7 @@ public class WallpaperCyclerService extends WallpaperService {
 			if (currentWallpaperImage == null) {
 				LogHelper.postErrorLog("A wallpaper image failed to load: "+fileList[currentFileIndex], getClass());
 				//If the decode failed for some reason, try again with the next file.
-				currentFileIndex ++;
+				setNextFileIndex();
 				changeCurrentWallpaper();
 			} else {
 				setNextFileIndex();
@@ -144,6 +144,10 @@ public class WallpaperCyclerService extends WallpaperService {
 				currentFileIndex = random.nextInt(fileList.length);
 			} else {
 				currentFileIndex++;
+				if (currentFileIndex > (fileList.length - 1)) {
+					//If we have somehow gotten out of bounds of the array, set a new index to use.
+					currentFileIndex = 0;
+				}
 			}
 		}
 
