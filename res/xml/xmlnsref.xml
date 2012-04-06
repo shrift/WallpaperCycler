@@ -1,3 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <wallpaper xmlns:android="http://schemas.android.com/apk/res/android"
-/>
+    android:name="@string/app_name"
+    android:description="@string/wallpapercycler_preferences"
+    android:settingsActivity="com.bubbletastic.wallpapercycler.WallpaperCyclerPreferences"
+    android:thumbnail="@drawable/ic_launcher" />

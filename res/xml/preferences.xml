@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:key="wallpapercycler_preferences"
+    android:title="@string/wallpapercycler_preferences" >
+
+    <Preference
+        android:key="@string/wallpapercycler_preferences_folder_key"
+        android:summary="@string/wallpapercycler_preferences_folder_description"
+        android:title="@string/wallpapercycler_preferences_folder" />
+
+</PreferenceScreen>

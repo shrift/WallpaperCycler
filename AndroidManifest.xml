@@ -4,7 +4,9 @@
     android:versionCode="1"
     android:versionName="1.0" >
 
-    <uses-sdk android:minSdkVersion="7" />
+    <uses-sdk
+        android:minSdkVersion="7"
+        android:targetSdkVersion="15" />
 
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -23,6 +25,15 @@
                 android:name="android.service.wallpaper"
                 android:resource="@xml/xmlnsref" />
         </service>
+
+        <activity
+            android:name=".WallpaperCyclerPreferences"
+            android:exported="true"
+            android:label="@string/wallpapercycler_preferences" >
+            <intent-filter>
+                <category android:name="android.intent.category.PREFERENCE" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

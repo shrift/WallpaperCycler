@@ -2,5 +2,11 @@
 <resources>
 
     <string name="app_name">WallpaperCycler</string>
+    <string name="wallpapercycler_preferences">Preferences</string>
+    <string name="wallpapercycler_preferences_folder_select_chooser_text">Select Folder</string>
+    <string name="wallpapercycler_preferences_folder">Select folder</string>
+    <string name="wallpapercycler_preferences_folder_current_prefix">Current folder:" "</string>
+    <string name="wallpapercycler_preferences_folder_key">wallpapercycler_preferences_folder</string>
+    <string name="wallpapercycler_preferences_folder_description">Select which folder to search for wallpapers.</string>
 
 </resources>
