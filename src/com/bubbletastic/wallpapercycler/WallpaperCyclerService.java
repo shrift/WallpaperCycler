@@ -43,6 +43,7 @@ public class WallpaperCyclerService extends WallpaperService {
 		//Preferences
 		private boolean usePseudoRandomOrder = true;
 		private boolean changeWallpaperWithVisibility = true;
+		private boolean useAnimatedTransision = false;
 
 		private Bitmap previosWallpaperImage;
 		private Bitmap currentWallpaperImage;
@@ -55,6 +56,8 @@ public class WallpaperCyclerService extends WallpaperService {
 
 		private Handler handler = new Handler();
 		private Handler transitionsHandler;
+		private int desiredWallpaperWidth;
+		private int desiredWallpaperHeight;
 
 		public WallpaperCyclerEngine() {
 			super();
@@ -63,6 +66,8 @@ public class WallpaperCyclerService extends WallpaperService {
 		@Override
 		public void onCreate(SurfaceHolder surfaceHolder) {
 			super.onCreate(surfaceHolder);
+			desiredWallpaperWidth = (WallpaperCycler.SCREEN_WIDTH * 2);
+			desiredWallpaperHeight = WallpaperCycler.SCREEN_HEIGHT;
 			getSharedPreferences(getPackageName(), MODE_PRIVATE).registerOnSharedPreferenceChangeListener(this);
 			loadFileList();
 		}
@@ -94,7 +99,7 @@ public class WallpaperCyclerService extends WallpaperService {
 		private void loadFileList() {
 			LogHelper.postDebugLog(getSharedPreferences(getPackageName(), MODE_PRIVATE).getString(getString(R.string.wallpapercycler_preferences_folder_key), "no saved wallpaper folder found"), getClass());
 			fileList = getFileList(getSharedPreferences(getPackageName(), MODE_PRIVATE).getString(getString(R.string.wallpapercycler_preferences_folder_key), Environment.getExternalStorageDirectory()+"/Wallpapers"));
-			if (fileList.length > 0) {
+			if (fileList != null && fileList.length > 0) {
 				setNextFileIndex();
 				changeCurrentWallpaper();
 				draw();
@@ -105,6 +110,9 @@ public class WallpaperCyclerService extends WallpaperService {
 		 * Change the wallpaper to a new one.
 		 */
 		private void changeCurrentWallpaper() {
+			if (fileList == null) {
+				return;
+			}
 			if (currentFileIndex > fileList.length) {
 				//If we have somehow gotten out of bounds of the array, set a new index to use.
 				setNextFileIndex();
@@ -131,7 +139,58 @@ public class WallpaperCyclerService extends WallpaperService {
 		}
 		
 		private Bitmap getImageFromFileSystem(String file) {
-			return BitmapFactory.decodeFile(file);
+			BitmapFactory.Options bounds = new BitmapFactory.Options();
+			bounds.inJustDecodeBounds = true;
+			BitmapFactory.decodeFile(file, bounds);
+			
+			int bmWidth = bounds.outWidth;
+			int bmHeight = bounds.outHeight;
+			LogHelper.postDebugLog("Desired wallpaper width is: "+desiredWallpaperWidth, getClass());
+			LogHelper.postDebugLog("Desired wallpaper height is: "+desiredWallpaperHeight, getClass());
+			LogHelper.postDebugLog("Found bitmap with width of: "+bmWidth, getClass());
+			LogHelper.postDebugLog("Found bitmap with height of: "+bmHeight, getClass());
+			
+			if (bmWidth > desiredWallpaperWidth && bmHeight > desiredWallpaperHeight) {
+			    float sampleSizeF = (float) bmWidth / (float) desiredWallpaperWidth;
+			    int sampleSize = Math.round(sampleSizeF);
+//			    if (sampleSize >= 2) {
+//			    	sampleSize--;
+//			    }
+			    LogHelper.postDebugLog("Image file was too large, using sample size of: "+sampleSize, getClass());
+			    BitmapFactory.Options resample = new BitmapFactory.Options();
+			    resample.inSampleSize = sampleSize;
+			    Bitmap tempBitmap = BitmapFactory.decodeFile(file, resample);
+			    LogHelper.postDebugLog("Resampled bitmap width: "+tempBitmap.getWidth(), getClass());
+			    LogHelper.postDebugLog("Resampled bitmap height: "+tempBitmap.getHeight(), getClass());
+			    if (tempBitmap.getWidth() != desiredWallpaperWidth || tempBitmap.getHeight() != desiredWallpaperHeight) {
+			    	tempBitmap = Bitmap.createScaledBitmap(tempBitmap, desiredWallpaperWidth, desiredWallpaperHeight, true);
+			    	int xOffset = 0;
+					if (tempBitmap.getWidth() > desiredWallpaperWidth) {
+						float tempX = tempBitmap.getWidth();
+						float desiredX = desiredWallpaperWidth;
+			    		xOffset = (int) ((tempX - desiredX) / 2);
+			    	}
+					int yOffset = 0;
+					if (tempBitmap.getHeight() > desiredWallpaperHeight) {
+						float tempY = tempBitmap.getHeight();
+						float desiredY = desiredWallpaperHeight;
+			    		yOffset = (int) ((tempY - desiredY) / 2);
+			    	}
+			    	LogHelper.postDebugLog("Using xOffset of : "+xOffset, getClass());
+			    	LogHelper.postDebugLog("Using yOffset of : "+yOffset, getClass());
+//			    	Bitmap resizedBitmap = Bitmap.createBitmap(desiredWallpaperWidth, desiredWallpaperHeight, null);
+//			    	Canvas resizedCanvas = new Canvas(resizedBitmap);
+//			    	resizedCanvas.drawBitmap(tempBitmap, xOffset, yOffset, null);
+					tempBitmap = Bitmap.createBitmap(tempBitmap, xOffset, yOffset, desiredWallpaperWidth, desiredWallpaperHeight);
+			    	LogHelper.postDebugLog("Final width of resized bitmap: "+tempBitmap.getWidth(), getClass());
+			    	LogHelper.postDebugLog("Final height of resized bitmap: "+tempBitmap.getHeight(), getClass());
+			    }
+			    return tempBitmap;
+			}
+			Bitmap bitmap = BitmapFactory.decodeFile(file);
+			LogHelper.postDebugLog("Returning non resized bitmap with width: "+bitmap.getWidth(), getClass());
+			LogHelper.postDebugLog("Returning non resized bitmap with height: "+bitmap.getHeight(), getClass());
+			return bitmap;
 		}
 
 		/**
@@ -155,7 +214,7 @@ public class WallpaperCyclerService extends WallpaperService {
 
 			@Override
 			public void run() {
-				if (fileList.length > 0) {
+				if (fileList != null && fileList.length > 0) {
 					Thread getWallpaperThread = new Thread(new Runnable() {
 						@Override
 						public void run() {
@@ -294,6 +353,10 @@ public class WallpaperCyclerService extends WallpaperService {
 		 * Change wallpapers.
 		 */
 		private void transitionWallpaper() {
+			if (!useAnimatedTransision) {
+				draw();
+				return;
+			}
 			if (currentWallpaperImage != null && !currentWallpaperImage.isRecycled()) {
 				if (previosWallpaperImage == null || previosWallpaperImage.isRecycled()) {
 					//If we don't have a previous wallpaper to transition with, use the normal draw method.
